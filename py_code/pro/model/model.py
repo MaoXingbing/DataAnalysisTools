@@ -20,7 +20,7 @@ bind=model.bind_tools(tools=tools)
 #     print(tool.name)
 
 #根据输入自动调用工具
-# messag=[HumanMessage(content='今天上海天气是啥')]
-# res=bind.invoke(messag)
-# print(f'content:{res.content}')
-# print(f"ToolCalls: {res.tool_calls}")
+messag=[HumanMessage(content='今天上海天气是啥')]
+res=bind.invoke(messag)
+print(f'content:{res.content}')
+print(f"ToolCalls: {res.tool_calls}")

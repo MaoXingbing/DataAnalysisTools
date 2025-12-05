@@ -11,7 +11,7 @@ print(prompt.messages)
 agent = create_tool_calling_agent(model, tools, prompt)
  # 创建AgentExecutor对象
 agent_executor = AgentExecutor(agent=agent, tools=tools,verbose=True)
-
-# print(agent_executor.invoke(
-#     {'input':'who are you'}
-# ))
+msg=agent_executor.invoke(
+    {'input':'今天上海的天气是啥'}
+)
+print(msg)
