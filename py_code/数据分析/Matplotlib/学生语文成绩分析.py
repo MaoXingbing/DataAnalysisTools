@@ -21,5 +21,4 @@ plt.hist(score,
          bins=range(0,100,5),
          facecolor='red',
          edgecolor='green')
-
 plt.show()
