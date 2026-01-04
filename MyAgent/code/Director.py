@@ -97,6 +97,9 @@ def travel_node(state: State):
          问题：{input}
          思考：{agent_scratchpad}
          """
+
+    prompt_template = PromptTemplate.from_template(system_prompt)
+
     # 高德地图的MCP配置信息
     MCP_SERVERS = {
         "amap-maps": {
@@ -146,7 +149,7 @@ def travel_node(state: State):
     agent = create_react_agent(
         llm=llm,
         tools=mcp_tools,
-        prompt=system_prompt
+        prompt=prompt_template
     )
     agent_executor = AgentExecutor(
         agent=agent,
