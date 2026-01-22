@@ -2,11 +2,15 @@ from typing import Annotated, TypedDict, List
 
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain_community.chat_models import ChatTongyi
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain_core.caches import InMemoryCache
 from langchain_core.messages import AnyMessage, HumanMessage, AIMessage
 from operator import add
 
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_text_splitters import CharacterTextSplitter
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint import MemorySaver
 from http import HTTPStatus
@@ -17,6 +21,7 @@ from dashscope import ImageSynthesis
 import os
 import dashscope
 from langchain_community.tools.dashscope import MultiServerMCP
+from ollama import embeddings
 
 # 构建大模型
 llm = ChatTongyi(
@@ -70,7 +75,51 @@ def other_node(state: State):
 
 def couplet_node(state: State):
     print(">>>进入couplet_node节点")
-    return {"message": [HumanMessage(content="我暂时无法回答这个问题")], "type": "couplet"}
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system","""
+                 你是一个对联大师，根据用户问题写一个对联，要求对联长度不超过100个字。
+    
+                 问题：{input}
+                 思考：{agent_scratchpad}
+                 """),
+        ("user", "{text}"),
+    ])
+    query=state['message'][0]
+
+    # 读取文件
+    path = "py_code/langchain-learning/jlu.txt"
+    loader = TextLoader(
+        file_path=path,
+        encoding="utf-8",
+    )
+    docs = loader.load()
+
+    # 文件切分成chunk
+    split = CharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100,
+    )
+    splidocs = split.split_documents(docs)
+
+    embedding_model = DashScopeEmbeddings(
+        model='text-embedding-v1',
+        dashscope_api_key='sk-edbd925ffc1f42aea4428b3d995ba30b',
+    )
+
+    # 存储到Chroma
+    db = Chroma.from_documents(
+        documents=splidocs,
+        embedding=embedding_model,
+        persist_directory='py_code/langchain-learning/chromaDB'
+    )
+
+    samples=[]
+    scored_results=db.similarity_search_with_score(query,k=10)
+    for document, score in scored_results:
+        samples.append(document.page_content)
+    prompt=prompt_template.invoke({'samples': samples, 'text': query})
+    resp=llm.invoke(prompt)
+    return {"message": [HumanMessage(content=resp.content)], "type": "couplet"}
 
 
 def joke_node(state: State):
